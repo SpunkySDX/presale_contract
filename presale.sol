@@ -222,6 +222,7 @@ contract SpunkySDXPresale is Ownable {
 
     AggregatorV3Interface public priceFeed;
 
+   address public constant WITHDRAWAL_ADDRESS = 0x3BC2A9C362e3b0852a92E07c18bf8B3412B893bD;
 
     event TokensPurchased(address indexed buyer, uint256 amount);
     event PresaleStarted();
@@ -321,7 +322,7 @@ contract SpunkySDXPresale is Ownable {
 
     // Function to withdraw Ether from the contract
     function withdrawEther() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+        payable(WITHDRAWAL_ADDRESS).transfer(address(this).balance);
     }
 
     // Function to withdraw unsold tokens from the contract
