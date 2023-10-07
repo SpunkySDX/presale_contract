@@ -284,6 +284,14 @@ contract SpunkySDXPresale is Ownable {
                 "Not enough presale tokens available"
             );
 
+              // Check if the purchase would exceed the maximum holding
+           uint256 totalSupply = spunkyToken.totalSupply();
+           uint256 MAX_HOLDING = (totalSupply * 5) / 100;
+           require(
+             spunkyToken.balanceOf(msg.sender) + tokensToBuy <= MAX_HOLDING,
+             "Purchase would exceed maximum holding per address"
+           );
+
             // Calculate vested amounts
             uint256 immediateReleaseAmount = (tokensToBuy * 1) / 4;
             uint256 vestedAmount = (tokensToBuy * 3) / 4; // 75%
