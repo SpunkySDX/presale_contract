@@ -214,7 +214,7 @@ contract SpunkySDXPresale is Ownable {
     string public name;
     IERC20 public spunkyToken;
     SpunkyVestingContract public vestingContract;
-    uint256 public constant PRESALE_PRICE_CENTS = 1; // 0.01 dollars per token
+    uint256 public presalePriceCents = 1; 
     uint256 public constant CENTS_PER_DOLLAR = 10000; // 10000 cents per dollar
     uint256 public tokensSold;
     bool public presaleStarted;
@@ -225,8 +225,9 @@ contract SpunkySDXPresale is Ownable {
    address public constant WITHDRAWAL_ADDRESS = 0x3BC2A9C362e3b0852a92E07c18bf8B3412B893bD;
 
     event TokensPurchased(address indexed buyer, uint256 amount);
-    event PresaleStarted();
-    event PresaleEnded();
+    event PresaleStarted(bool presaleStarted);
+    event PresaleEnded(bool presaleEnded);
+    event PresalePriceUpdated(uint256 newPriceCents);
 
     constructor(address _vestingContractAddress, address _spunkyTokenAddress) 
     {
@@ -252,13 +253,13 @@ contract SpunkySDXPresale is Ownable {
     function startPresale() external onlyOwner {
         require(!presaleStarted, "Presale already started");
         presaleStarted = true;
-        emit PresaleStarted();
+        emit PresaleStarted(presaleStarted);
     }
 
     // Function to end the presale
     function endPresale() external onlyOwner presaleActive {
         presaleEnded = true;
-        emit PresaleEnded();
+        emit PresaleEnded(presaleEnded);
     }
 
      function getETHPrice() public view returns (uint256) {
@@ -276,7 +277,7 @@ contract SpunkySDXPresale is Ownable {
         if (presaleStarted == true) {
             uint256 ethPrice = getETHPrice(); // Get the current ETH price in USD
             require(msg.sender != owner(), "Contract owner cannot participate");
-            uint256 tokensToBuy = (msg.value * ethPrice * PRESALE_PRICE_CENTS) / (CENTS_PER_DOLLAR * 1 ether);
+            uint256 tokensToBuy = (msg.value * ethPrice * presalePriceCents) / (CENTS_PER_DOLLAR * 1 ether);
 
             // Check if the presale allocation is sufficient
             require(
@@ -327,6 +328,12 @@ contract SpunkySDXPresale is Ownable {
      receive() external payable {
         buyTokens();
     }
+
+    function updatePresalePrice(uint256 newPriceCents) external onlyOwner {
+    require(newPriceCents > 0, "Price must be greater than zero");
+    presalePriceCents = newPriceCents;
+    emit PresalePriceUpdated(newPriceCents);
+}
 
     // Function to withdraw Ether from the contract
     function withdrawEther() external onlyOwner {
