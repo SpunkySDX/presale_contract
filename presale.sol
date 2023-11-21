@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity >=0.8.0 <0.9.0;
   
+  import "@openzeppelin/contracts/utils/Address.sol";
+
   /**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
@@ -228,6 +229,7 @@ contract SpunkySDXPresale is Ownable {
     event PresaleStarted(bool presaleStarted);
     event PresaleEnded(bool presaleEnded);
     event PresalePriceUpdated(uint256 newPriceCents);
+    event WithdrawEther(uint256 etherprice);
 
     constructor(address _vestingContractAddress, address _spunkyTokenAddress) 
     {
@@ -263,15 +265,19 @@ contract SpunkySDXPresale is Ownable {
     }
 
      function getETHPrice() public view returns (uint256) {
-        (, int256 price, , , ) = priceFeed.latestRoundData();
-        require(price > 0, "Invalid price feed");
-        return uint256(price);
+         (, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
+         require(price > 0, "Invalid price feed");
+
+        // Check if the price data is stale
+        uint256 stalenessThreshold = 1 hours; // Define your staleness threshold here
+        require(block.timestamp - updatedAt <= stalenessThreshold, "Stale price feed");
+
+      return uint256(price);
     }
 
       // Function to buy tokens and then release on 25% of the 
-    function buyTokens() public payable presaleActive {
+     function buyTokens() public payable  {
          require(msg.value > 0, "No Ether sent");
-        require(msg.sender != owner(), "Contract owner cannot participate");
 
         // Check if the presale is ongoing
         if (presaleStarted == true) {
@@ -294,11 +300,15 @@ contract SpunkySDXPresale is Ownable {
            );
 
             // Calculate vested amounts
-            uint256 immediateReleaseAmount = (tokensToBuy * 1) / 4;
-            uint256 vestedAmount = (tokensToBuy * 3) / 4; // 75%
+            uint256 immediateReleaseAmount = tokensToBuy / 4;
+            uint256 vestedAmount = tokensToBuy - immediateReleaseAmount;   
             
             // Transfer the immediate release portion to buyer
-            spunkyToken.transfer(msg.sender, immediateReleaseAmount);
+            spunkyToken.SafeTransfer(msg.sender, immediateReleaseAmount);
+
+            // Transfer the vested tokens to the vesting contract
+           spunkyToken.SafeTransfer(address(vestingContract), vestedAmount);
+
 
             // Set up the vesting schedule for the user's vested amount, over 5 months
             uint256 cliffDuration = 0; // No cliff for presale
@@ -321,7 +331,7 @@ contract SpunkySDXPresale is Ownable {
             emit TokensPurchased(msg.sender, immediateReleaseAmount);
         } else {
             // If the presale is over, refund the Ether
-            payable(msg.sender).transfer(msg.value);
+          Address.sendValue(payable(msg.sender), msg.value);
         }
     }
 
@@ -330,19 +340,20 @@ contract SpunkySDXPresale is Ownable {
     }
 
     function updatePresalePrice(uint256 newPriceCents) external onlyOwner {
-    require(newPriceCents > 0, "Price must be greater than zero");
-    presalePriceCents = newPriceCents;
-    emit PresalePriceUpdated(newPriceCents);
-}
+     require(newPriceCents > 0, "Price must be greater than zero");
+     presalePriceCents = newPriceCents;
+     emit PresalePriceUpdated(newPriceCents);
+    }
 
     // Function to withdraw Ether from the contract
     function withdrawEther() external onlyOwner {
-        payable(WITHDRAWAL_ADDRESS).transfer(address(this).balance);
+        Address.sendValue(payable(msg.WITHDRAWAL_ADDRESS), address(this).balance);
+        emit WithdrawEther(address(this).balance);
     }
 
     // Function to withdraw unsold tokens from the contract
     function withdrawTokens() external onlyOwner {
         uint256 remainingTokens = spunkyToken.balanceOf(address(this));
-        spunkyToken.transfer(owner(), remainingTokens);
+        spunkyToken.SafeTransfer(owner(), remainingTokens);
     }
 }
