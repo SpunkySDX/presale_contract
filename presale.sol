@@ -220,6 +220,8 @@ contract SpunkySDXPresale is Ownable {
     uint256 public tokensSold;
     bool public presaleStarted;
     bool public presaleEnded;
+    // Define your staleness threshold here
+    uint256 stalenessThreshold;
 
     AggregatorV3Interface public priceFeed;
 
@@ -237,6 +239,7 @@ contract SpunkySDXPresale is Ownable {
         spunkyToken = IERC20(_spunkyTokenAddress); //spunkysdx token address
         presaleStarted = false;
         presaleEnded = false;
+        stalenessThreshold = 6 hours;
 
          //Chainlink Aggregator contract address
         priceFeed = AggregatorV3Interface(
@@ -269,7 +272,6 @@ contract SpunkySDXPresale is Ownable {
          require(price > 0, "Invalid price feed");
 
         // Check if the price data is stale
-        uint256 stalenessThreshold = 1 hours; // Define your staleness threshold here
         require(block.timestamp - updatedAt <= stalenessThreshold, "Stale price feed");
 
       return uint256(price);
