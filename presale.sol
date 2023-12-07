@@ -349,7 +349,7 @@ contract SpunkySDXPresale is Ownable {
 
     // Function to withdraw Ether from the contract
     function withdrawEther() external onlyOwner {
-        Address.sendValue(payable(msg.WITHDRAWAL_ADDRESS), address(this).balance);
+        Address.sendValue(payable(WITHDRAWAL_ADDRESS), address(this).balance);
         emit WithdrawEther(address(this).balance);
     }
 
