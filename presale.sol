@@ -531,64 +531,63 @@ contract SpunkySDXPresale is Ownable {
     }
 
       // Function to buy tokens and then release on 25% of the 
-     function buyTokens() public payable  {
-         require(msg.value > 0, "No Ether sent");
+    function buyTokens() public payable  {
+    require(msg.value > 0, "No Ether sent");
 
-        // Check if the presale is ongoing
-        if (presaleStarted == true) {
-            uint256 ethPrice = getETHPrice(); // Get the current ETH price in USD
-            require(msg.sender != owner(), "Contract owner cannot participate");
-            uint256 tokensToBuy = (msg.value * ethPrice * presalePriceCents) / (CENTS_PER_DOLLAR * 1 ether);
+    if (presaleStarted == true) {
+        uint256 ethPrice = getETHPrice(); 
+        require(msg.sender != owner(), "Contract owner cannot participate");
+        uint256 tokensToBuy = (msg.value * ethPrice * presalePriceCents) / (CENTS_PER_DOLLAR * 1 ether);
 
-            // Check if the presale allocation is sufficient
-            require(
-                spunkyToken.balanceOf(address(this)) >= tokensToBuy,
-                "Not enough presale tokens available"
-            );
+        require(
+            spunkyToken.balanceOf(address(this)) >= tokensToBuy,
+            "Not enough presale tokens available"
+        );
 
-              // Check if the purchase would exceed the maximum holding
-           uint256 totalSupply = spunkyToken.totalSupply();
-           uint256 MAX_HOLDING = (totalSupply * 5) / 100;
-           require(
-             spunkyToken.balanceOf(msg.sender) + tokensToBuy <= MAX_HOLDING,
-             "Purchase would exceed maximum holding per address"
-           );
+        uint256 totalSupply = spunkyToken.totalSupply();
+        uint256 MAX_HOLDING = (totalSupply * 5) / 100;
+        require(
+            spunkyToken.balanceOf(msg.sender) + tokensToBuy <= MAX_HOLDING,
+            "Purchase would exceed maximum holding per address"
+        );
 
-            // Calculate vested amounts
-            uint256 immediateReleaseAmount = tokensToBuy / 4;
-            uint256 vestedAmount = tokensToBuy - immediateReleaseAmount;   
-            
-            // Transfer the immediate release portion to buyer
-            spunkyToken.safeTransfer(msg.sender, immediateReleaseAmount);
+        uint256 immediateReleaseAmount = tokensToBuy / 4;
+        uint256 vestedAmount = tokensToBuy - immediateReleaseAmount;   
 
-            // Transfer the vested tokens to the vesting contract
-            spunkyToken.safeTransfer(address(vestingContract), vestedAmount);
+        spunkyToken.safeTransfer(msg.sender, immediateReleaseAmount);
+        spunkyToken.safeTransfer(address(vestingContract), vestedAmount);
 
-
-            // Set up the vesting schedule for the user's vested amount, over 5 months
-            uint256 cliffDuration = 0; // No cliff for presale
-            uint256 vestingDuration = 30 days * 5; // 5 months
-            uint256 vestingStart = block.timestamp;
-            uint256 vestingEnd = vestingStart + vestingDuration;
-            uint256 vestingInterval = (vestingEnd - vestingStart) / 5; // 5 vesting periods
-            uint256[] memory vestingAmounts = new uint256[](5);
-            uint256[] memory vestingTimes = new uint256[](5);
-            for (uint256 i = 0; i < 5; i++) {
-                vestingAmounts[i] = vestedAmount / 5;
-                vestingTimes[i] = vestingStart + (vestingInterval * i);
-            }
-             vestingContract.addVestingSchedule(
-                msg.sender,
-                vestedAmount,
-                cliffDuration,
-                vestingDuration
-            );
-            emit TokensPurchased(msg.sender, immediateReleaseAmount);
-        } else {
-            // If the presale is over, refund the Ether
-          Address.sendValue(payable(msg.sender), msg.value);
+        uint256 cliffDuration = 0; 
+        uint256 vestingDuration = 30 days * 5; 
+        uint256 vestingStart = block.timestamp;
+        uint256 vestingEnd = vestingStart + vestingDuration;
+        uint256 vestingInterval = (vestingEnd - vestingStart) / 5; 
+        uint256[] memory vestingAmounts = new uint256[](5);
+        uint256[] memory vestingTimes = new uint256[](5);
+        for (uint256 i = 0; i < 5; i++) {
+            vestingAmounts[i] = vestedAmount / 5;
+            vestingTimes[i] = vestingStart + (vestingInterval * i);
         }
+        vestingContract.addVestingSchedule(
+            msg.sender,
+            vestedAmount,
+            cliffDuration,
+            vestingDuration
+        );
+        emit TokensPurchased(msg.sender, immediateReleaseAmount);
+
+        // Calculate the actual Ether used
+        uint256 actualEtherUsed = tokensToBuy * CENTS_PER_DOLLAR * 1 ether / (ethPrice * presalePriceCents);
+        // Calculate the surplus Ether
+        uint256 surplusEther = msg.value - actualEtherUsed;
+        // Return the surplus Ether to the sender
+        if (surplusEther > 0) {
+            Address.sendValue(payable(msg.sender), surplusEther);
+        }
+    } else {
+        Address.sendValue(payable(msg.sender), msg.value);
     }
+}
 
      receive() external payable {
         buyTokens();
