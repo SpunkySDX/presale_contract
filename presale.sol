@@ -555,7 +555,7 @@ contract SpunkySDXPresale is Ownable {
         uint256 vestedAmount = tokensToBuy - immediateReleaseAmount;   
 
         spunkyToken.safeTransfer(msg.sender, immediateReleaseAmount);
-        spunkyToken.safeTransfer(address(vestingContract), vestedAmount);
+        spunkyToken.approve(address(vestingContract), vestedAmount);
 
         uint256 cliffDuration = 0; 
         uint256 vestingDuration = 30 days * 5; 
