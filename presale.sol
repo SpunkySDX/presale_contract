@@ -532,9 +532,9 @@ contract SpunkySDXPresale is Ownable {
 
       // Function to buy tokens and then release on 25% of the 
     function buyTokens() public payable  {
-    require(msg.value > 0, "No Ether sent");
+      require(msg.value > 0, "No Ether sent");
 
-    if (presaleStarted == true) {
+      if (presaleStarted == true) {
         uint256 ethPrice = getETHPrice(); 
         require(msg.sender != owner(), "Contract owner cannot participate");
         uint256 tokensToBuy = (msg.value * ethPrice * presalePriceCents) / (CENTS_PER_DOLLAR * 1 ether);
@@ -559,15 +559,7 @@ contract SpunkySDXPresale is Ownable {
 
         uint256 cliffDuration = 0; 
         uint256 vestingDuration = 30 days * 5; 
-        uint256 vestingStart = block.timestamp;
-        uint256 vestingEnd = vestingStart + vestingDuration;
-        uint256 vestingInterval = (vestingEnd - vestingStart) / 5; 
-        uint256[] memory vestingAmounts = new uint256[](5);
-        uint256[] memory vestingTimes = new uint256[](5);
-        for (uint256 i = 0; i < 5; i++) {
-            vestingAmounts[i] = vestedAmount / 5;
-            vestingTimes[i] = vestingStart + (vestingInterval * i);
-        }
+      
         vestingContract.addVestingSchedule(
             msg.sender,
             vestedAmount,
@@ -587,7 +579,7 @@ contract SpunkySDXPresale is Ownable {
     } else {
         Address.sendValue(payable(msg.sender), msg.value);
     }
-}
+  }
 
      receive() external payable {
         buyTokens();
