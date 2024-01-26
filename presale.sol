@@ -534,7 +534,7 @@ contract SpunkySDXPresale is Ownable {
     function buyTokens() public payable  {
       require(msg.value > 0, "No Ether sent");
 
-      if (presaleStarted == true) {
+      if (presaleStarted && !presaleEnded) {
         uint256 ethPrice = getETHPrice(); 
         require(msg.sender != owner(), "Contract owner cannot participate");
         uint256 tokensToBuy = (msg.value * ethPrice * presalePriceCents) / (CENTS_PER_DOLLAR * 1 ether);
