@@ -457,7 +457,8 @@ interface SpunkyVestingContract {
         address _beneficiary,
         uint256 _vestedAmount,
         uint256 _cliffDuration,
-        uint256 _vestingDuration
+        uint256 _vestingDuration,
+        bool _presale
     ) external;
 }
 
@@ -478,7 +479,7 @@ contract SpunkySDXPresale is Ownable {
 
     AggregatorV3Interface public priceFeed;
 
-   address public constant WITHDRAWAL_ADDRESS = 0x3BC2A9C362e3b0852a92E07c18bf8B3412B893bD;
+   address public constant WITHDRAWAL_ADDRESS = 0x8D5f8b318d644c4Bbe17f198E66B1F671f3e3c15;
 
     event TokensPurchased(address indexed buyer, uint256 amount);
     event PresaleStarted(bool presaleStarted);
@@ -492,11 +493,11 @@ contract SpunkySDXPresale is Ownable {
         spunkyToken = IERC20(_spunkyTokenAddress); //spunkysdx token address
         presaleStarted = false;
         presaleEnded = false;
-        stalenessThreshold = 6 hours;
+        stalenessThreshold = 1 hours;
 
-         //Chainlink Aggregator contract address
+         //Chainlink Aggregator contract address for ARB-ETH/USD
         priceFeed = AggregatorV3Interface(
-            0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+            0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612
         );
         vestingContract = SpunkyVestingContract(_vestingContractAddress);
     }
@@ -508,14 +509,14 @@ contract SpunkySDXPresale is Ownable {
     }
 
     // Function to start the presale
-    function startPresale() external onlyOwner {
+    function startPresale() public onlyOwner {
         require(!presaleStarted, "Presale already started");
         presaleStarted = true;
         emit PresaleStarted(presaleStarted);
     }
 
     // Function to end the presale
-    function endPresale() external onlyOwner presaleActive {
+    function endPresale() public onlyOwner presaleActive {
         presaleEnded = true;
         emit PresaleEnded(presaleEnded);
     }
@@ -553,8 +554,8 @@ contract SpunkySDXPresale is Ownable {
         uint256 immediateReleaseAmount = tokensToBuy / 4;
         uint256 vestedAmount = tokensToBuy - immediateReleaseAmount;   
 
-        spunkyToken.safeTransfer(msg.sender, immediateReleaseAmount);
-        spunkyToken.approve(address(vestingContract), vestedAmount);
+       spunkyToken.transfer(msg.sender, immediateReleaseAmount);
+       spunkyToken.transfer(address(vestingContract), vestedAmount);
 
         uint256 cliffDuration = 0; 
         uint256 vestingDuration = 30 days * 5; 
@@ -563,8 +564,10 @@ contract SpunkySDXPresale is Ownable {
             msg.sender,
             vestedAmount,
             cliffDuration,
-            vestingDuration
+            vestingDuration,
+            true
         );
+
         emit TokensPurchased(msg.sender, immediateReleaseAmount);
 
         // Calculate the actual Ether used
@@ -584,20 +587,20 @@ contract SpunkySDXPresale is Ownable {
         buyTokens();
     }
 
-    function updatePresalePrice(uint256 newPriceCents) external onlyOwner {
+    function updatePresalePrice(uint256 newPriceCents) public onlyOwner {
      require(newPriceCents > 0, "Price must be greater than zero");
      presalePriceCents = newPriceCents;
      emit PresalePriceUpdated(newPriceCents);
     }
 
     // Function to withdraw Ether from the contract
-    function withdrawEther() external onlyOwner {
+    function withdrawEther() public onlyOwner {
         Address.sendValue(payable(WITHDRAWAL_ADDRESS), address(this).balance);
         emit WithdrawEther(address(this).balance);
     }
 
     // Function to withdraw unsold tokens from the contract
-    function withdrawTokens() external onlyOwner {
+    function withdrawTokens() public onlyOwner {
         uint256 remainingTokens = spunkyToken.balanceOf(address(this));
         spunkyToken.safeTransfer(owner(), remainingTokens);
     }
